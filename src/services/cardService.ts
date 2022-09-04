@@ -2,6 +2,7 @@ import * as employeeRepository from "../repositories/employeeRepository";
 import * as cardRepository from "../repositories/cardRepository";
 
 import { TransactionTypes } from "../repositories/cardRepository";
+import { CardInsertData } from "../repositories/cardRepository";
 
 import { faker } from '@faker-js/faker';
 import dayjs from "dayjs";
@@ -49,7 +50,23 @@ export async function createCard(employeeId: number, type: TransactionTypes) {
     const securityCode: string = String(faker.random.numeric(3));
     const secretKey = process.env.SECRET_KEY || "secret"
     const cryptr = new Cryptr(secretKey);
+    const encryptedSecurityCode = cryptr.encrypt(securityCode);
 
-    //const encryptedString = cryptr.encrypt(securityCode);
     //const decryptedString = cryptr.decrypt(encryptedString);
+
+    //cria cartão
+    const cardData: CardInsertData = {
+        employeeId,
+        number,
+        cardholderName,
+        securityCode: encryptedSecurityCode,
+        expirationDate,
+        password: undefined,
+        isVirtual: false,
+        originalCardId: undefined,
+        isBlocked: false,
+        type,
+    }
+
+    await cardRepository.insert(cardData)
 }

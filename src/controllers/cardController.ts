@@ -9,5 +9,5 @@ export async function createCard(req: Request, res: Response) {
     await companieService.validateApiKey(apiKey);
     const result = await cardService.createCard(employeeId, type);
 
-    res.send(201);
+    res.status(201).send("cartão criado com sucesso");
 }
