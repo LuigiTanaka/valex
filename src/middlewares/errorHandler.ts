@@ -13,5 +13,9 @@ export default async function errorHandler(error: any, req: Request, res: Respon
         return res.status(409).send(error.message);
     }
 
+    if(error.code === "Bad request") {
+        return res.status(400).send(error.message);
+    }
+
     res.sendStatus(500);
 }

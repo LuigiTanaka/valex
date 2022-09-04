@@ -12,10 +12,12 @@
   "license": "ISC",
   "dependencies": {
     "@types/axios": "^0.14.0",
+    "@types/bcrypt": "^5.0.0",
     "@types/cryptr": "^4.0.1",
     "@types/joi": "^17.2.3",
     "@types/pg": "^8.6.5",
     "axios": "^0.27.2",
+    "bcrypt": "^5.0.1",
     "cors": "^2.8.5",
     "cryptr": "^6.0.3",
     "dayjs": "^1.11.5",
