@@ -19,3 +19,11 @@ export async function activeCard(req: Request, res: Response) {
 
     res.status(201).send("cartão ativado com sucesso");
 }
+
+export async function getBalanceById(req: Request, res: Response) {
+    const { cardId } = req.params;
+
+    const result = await cardService.getBalanceById(Number(cardId));
+
+    res.status(200).send(result);
+}

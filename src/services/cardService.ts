@@ -1,5 +1,7 @@
 import * as employeeRepository from "../repositories/employeeRepository";
 import * as cardRepository from "../repositories/cardRepository";
+import * as rechargeRepository from "../repositories/rechargeRepository";
+import * as paymentRepository from "../repositories/paymentRepository";
 
 import { TransactionTypes } from "../repositories/cardRepository";
 import { CardInsertData } from "../repositories/cardRepository";
@@ -10,7 +12,6 @@ import dayjs from "dayjs";
 import Cryptr from "cryptr";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import { Console } from "console";
 
 dotenv.config();
 
@@ -116,4 +117,28 @@ export async function activeCard(cardId: number, CVC: string, password: string) 
     }
 
     await cardRepository.update(cardId, cardData);
+}
+
+export async function getBalanceById(cardId: number) {
+    //verifica se cartão está cadastrado
+    const card = await cardRepository.findById(cardId);
+    if(!card) {
+        throw { code: "Not found", message: "cartão não cadastrado" }
+    }
+
+    //calcula saldo
+    const { totalRecharges } = await rechargeRepository.getTotalRecharges(cardId);
+    const { totalPayments } = await paymentRepository.getTotalPayments(cardId);
+    const balance = totalRecharges - totalPayments;
+
+    //pega transações
+    const transactions = await paymentRepository.findByCardId(cardId);
+    const recharges = await rechargeRepository.findByCardId(cardId);
+
+    //envia objeto
+    return { 
+        balance,
+        transactions,
+        recharges
+     }
 }

@@ -25,6 +25,15 @@ export async function findByCardId(cardId: number) {
   return result.rows;
 }
 
+export async function getTotalPayments(cardId: number) {
+  const result = await connection.query(
+    `SELECT SUM(amount) as "totalPayments" FROM payments WHERE "cardId" = $1 GROUP BY "cardId"`,
+    [cardId]
+    );
+
+  return result.rows[0];
+}
+
 export async function insert(paymentData: PaymentInsertData) {
   const { cardId, businessId, amount } = paymentData;
 
