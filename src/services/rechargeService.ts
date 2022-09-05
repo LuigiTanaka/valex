@@ -11,7 +11,7 @@ export async function rechargeCard(cardId: number, amount: number) {
     await verifications.verifyCardRegistration(cardId);
 
     //verifica se cartão não está ativado
-    await verifications.verifyCardActived(cardId);
+    await verifications.verifyCardIsActived(cardId);
 
     //verifica se cartão já está expirado
     verifications.verifyExpiredCard(card.expirationDate);

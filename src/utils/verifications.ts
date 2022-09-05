@@ -23,10 +23,17 @@ export async function verifyCardRegistration(cardId: number) {
     }
 }
 
-export async function verifyCardActived(cardId: number) {
+export async function verifyCardIsActived(cardId: number) {
     const card = await cardRepository.findById(cardId);
     if (!card.password) {
         throw { code: "Bad request", message: "cartão não está ativado ainda" }
+    }
+}
+
+export async function verifyCardIsBlocked(cardId: number) {
+    const card = await cardRepository.findById(cardId);
+    if (card.isBlocked) {
+        throw { code: "Conflict", message: "cartão está bloqueado" }
     }
 }
 

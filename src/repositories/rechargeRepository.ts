@@ -23,7 +23,11 @@ export async function getTotalRecharges(cardId: number) {
     [cardId]
     );
   
-  return result.rows[0];
+    if (result.rows[0]) {
+      return result.rows[0]
+    }
+    
+    return { totalRecharges: 0 };
 }
 
 export async function insert(rechargeData: RechargeInsertData) {

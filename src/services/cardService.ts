@@ -7,6 +7,7 @@ import { TransactionTypes } from "../repositories/cardRepository";
 import { CardInsertData } from "../repositories/cardRepository";
 import { CardUpdateData } from "../repositories/cardRepository";
 import * as verifications from "../utils/verifications";
+import { calculateBalance } from "../utils/calculateBalance";
 
 import { faker } from '@faker-js/faker';
 import dayjs from "dayjs";
@@ -121,10 +122,8 @@ export async function blockCard(cardId: number, password: string) {
     //verifica se cartão já está expirado
     verifications.verifyExpiredCard(card.expirationDate);
 
-    //verifica se cartão já está bloqueado
-    if (card.isBlocked) {
-        throw { code: "Conflict", message: "cartão já bloqueado" }
-    }
+    //verifica se cartão está bloqueado
+    await verifications.verifyCardIsBlocked(cardId);
 
     //bloqueia cartão
     const cardData: CardUpdateData = {
@@ -146,7 +145,7 @@ export async function unblockCard(cardId: number, password: string) {
     //verifica se cartão já está expirado
     verifications.verifyExpiredCard(card.expirationDate);
 
-    //verifica se cartão já está desbloqueado
+    //verifica se cartão está desbloqueado
     if (!card.isBlocked) {
         throw { code: "Conflict", message: "cartão já desbloqueado" }
     }
@@ -159,7 +158,6 @@ export async function unblockCard(cardId: number, password: string) {
     await cardRepository.update(cardId, cardData);
 }
 
-
 export async function getBalanceById(cardId: number) {
     const card = await cardRepository.findById(cardId);
 
@@ -167,9 +165,8 @@ export async function getBalanceById(cardId: number) {
     await verifications.verifyCardRegistration(cardId);
 
     //calcula saldo
-    const { totalRecharges } = await rechargeRepository.getTotalRecharges(cardId);
-    const { totalPayments } = await paymentRepository.getTotalPayments(cardId);
-    const balance = totalRecharges - totalPayments;
+    const balance = await calculateBalance(cardId);
+    console.log(balance);
 
     //pega transações
     const transactions = await paymentRepository.findByCardId(cardId);
