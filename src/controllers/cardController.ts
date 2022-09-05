@@ -28,6 +28,14 @@ export async function blockCard(req: Request, res: Response) {
     res.status(200).send("cartão bloqueado com sucesso");
 }
 
+export async function unblockCard(req: Request, res: Response) {
+    const { cardId, password } = req.body;
+
+    await cardService.unblockCard(cardId, password);
+
+    res.status(200).send("cartão desbloqueado com sucesso");
+}
+
 export async function getBalanceById(req: Request, res: Response) {
     const { cardId } = req.params;
 
