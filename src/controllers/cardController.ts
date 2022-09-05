@@ -17,7 +17,15 @@ export async function activeCard(req: Request, res: Response) {
 
     await cardService.activeCard(cardId, CVC, password);
 
-    res.status(201).send("cartão ativado com sucesso");
+    res.status(200).send("cartão ativado com sucesso");
+}
+
+export async function blockCard(req: Request, res: Response) {
+    const { cardId, password } = req.body;
+
+    await cardService.blockCard(cardId, password);
+
+    res.status(200).send("cartão bloqueado com sucesso");
 }
 
 export async function getBalanceById(req: Request, res: Response) {

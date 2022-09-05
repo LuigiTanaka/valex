@@ -15,16 +15,33 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+function verifyExpiredCard(expirationDate: string) {
+    const now = dayjs().format("MM/YY");
+    const monthNow: number = Number(now.split("/")[0]);
+    const yearNow: number = Number(now.split("/")[1]);
+    const monthExpiration: number = Number(expirationDate.split("/")[0]);
+    const yearExpiration: number = Number(expirationDate.split("/")[1]);
+
+    console.log(yearNow);
+    console.log(yearExpiration)
+
+    const expiredCard = yearNow > yearExpiration || yearNow === yearExpiration && monthNow > monthExpiration
+
+    if (expiredCard) {
+        throw { code: "Bad request", message: "cartão expirado" }
+    }
+}
+
 export async function createCard(employeeId: number, type: TransactionTypes) {
     //verifica se empregado está cadastrado
     const employee = await employeeRepository.findById(employeeId);
-    if(!employee) {
+    if (!employee) {
         throw { code: "Not found", message: "empregado não cadastrado" }
     }
 
     //verifica se empregado já possui cartão deste tipo
     const verifyType = await cardRepository.findByTypeAndEmployeeId(type, employeeId)
-    if(verifyType) {
+    if (verifyType) {
         throw { code: "Conflict", message: "empregado já possui cartão deste tipo" }
     }
 
@@ -35,10 +52,10 @@ export async function createCard(employeeId: number, type: TransactionTypes) {
     const fullName = employee.fullName;
     const names = fullName.split(" ");
     let cardholderName = "";
-    for(let i = 0; i < names.length; i++) {
-        if(i === 0) {
+    for (let i = 0; i < names.length; i++) {
+        if (i === 0) {
             cardholderName += names[i].toUpperCase() + " ";
-        } else if (i === names.length-1) {
+        } else if (i === names.length - 1) {
             cardholderName += names[i].toUpperCase();
         } else if (names[i].length < 3) {
             continue;
@@ -46,7 +63,7 @@ export async function createCard(employeeId: number, type: TransactionTypes) {
             cardholderName += names[i][0].toUpperCase() + " ";
         }
     }
-    
+
     //gera data de expiração
     const expirationDate = dayjs().add(5, "year").format("MM/YY");
 
@@ -76,26 +93,16 @@ export async function createCard(employeeId: number, type: TransactionTypes) {
 export async function activeCard(cardId: number, CVC: string, password: string) {
     //verifica se cartão está cadastrado
     const card = await cardRepository.findById(cardId);
-    if(!card) {
+    if (!card) {
         throw { code: "Not found", message: "cartão não cadastrado" }
     }
 
     //verifica se cartão já está expirado
-    const now = dayjs().format("MM/YY");
-    const monthNow: number = Number(now.split("/")[0]);
-    const yearNow: number = Number(now.split("/")[1]);
-    const monthExpiration: number = Number(card.expirationDate.split("/")[0]);
-    const yearExpiration: number = Number(card.expirationDate.split("/")[1]);
-
-    const expiredCard = yearNow > yearExpiration || yearNow === yearExpiration && monthNow > monthExpiration
-
-    if(expiredCard) {
-        throw { code: "Bad request", message: "cartão expirado" }
-    }
+    verifyExpiredCard(card.expirationDate);
 
     //verifica se cartão já está ativado
-    if(card.password) {
-        throw { code: "Conflit", message: "cartão já ativado" }
+    if (card.password) {
+        throw { code: "Conflict", message: "cartão já ativado" }
     }
 
     //verifica CVC
@@ -103,7 +110,7 @@ export async function activeCard(cardId: number, CVC: string, password: string) 
     const cryptr = new Cryptr(secretKey);
     const decryptedSecurityCode = cryptr.decrypt(card.securityCode);
     console.log(decryptedSecurityCode);
-    if(decryptedSecurityCode !== CVC) {
+    if (decryptedSecurityCode !== CVC) {
         throw { code: "Unauthorized", message: "CVC incorreto" }
     }
 
@@ -119,10 +126,44 @@ export async function activeCard(cardId: number, CVC: string, password: string) 
     await cardRepository.update(cardId, cardData);
 }
 
+export async function blockCard(cardId: number, password: string) {
+    //verifica se cartão está cadastrado
+    const card = await cardRepository.findById(cardId);
+    if (!card) {
+        throw { code: "Not found", message: "cartão não cadastrado" }
+    }
+
+    //verifica se cartão não está ativado
+    if (!card.password) {
+        throw { code: "Bad request", message: "cartão não está ativado ainda" }
+    }
+
+    //verifica senha
+    const correctPassword = bcrypt.compareSync(password, card.password);
+    if(!correctPassword) {
+        throw { code: "Unauthorized", message: "senha incorreta" }
+    }
+
+    //verifica se cartão já está bloqueado
+    if (card.isBlocked) {
+        throw { code: "Conflict", message: "cartão já bloqueado" }
+    }
+
+    //verifica se cartão já está expirado
+    verifyExpiredCard(card.expirationDate);
+
+    //bloqueia cartão
+    const cardData: CardUpdateData = {
+        isBlocked: true
+    }
+
+    await cardRepository.update(cardId, cardData);
+}
+
 export async function getBalanceById(cardId: number) {
     //verifica se cartão está cadastrado
     const card = await cardRepository.findById(cardId);
-    if(!card) {
+    if (!card) {
         throw { code: "Not found", message: "cartão não cadastrado" }
     }
 
@@ -136,9 +177,9 @@ export async function getBalanceById(cardId: number) {
     const recharges = await rechargeRepository.findByCardId(cardId);
 
     //envia objeto
-    return { 
+    return {
         balance,
         transactions,
         recharges
-     }
+    }
 }
