@@ -236,5 +236,3 @@ Start the server
 
 -   Luigi Tanaka, a student at Driven Education 
 <br/>
-
-#
