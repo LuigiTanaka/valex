@@ -6,6 +6,7 @@ import * as paymentRepository from "../repositories/paymentRepository";
 import { TransactionTypes } from "../repositories/cardRepository";
 import { CardInsertData } from "../repositories/cardRepository";
 import { CardUpdateData } from "../repositories/cardRepository";
+import * as verifications from "../utils/verifications";
 
 import { faker } from '@faker-js/faker';
 import dayjs from "dayjs";
@@ -14,51 +15,6 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 
 dotenv.config();
-
-function verifyExpiredCard(expirationDate: string) {
-    const now = dayjs().format("MM/YY");
-    const monthNow: number = Number(now.split("/")[0]);
-    const yearNow: number = Number(now.split("/")[1]);
-    const monthExpiration: number = Number(expirationDate.split("/")[0]);
-    const yearExpiration: number = Number(expirationDate.split("/")[1]);
-
-    console.log(yearNow);
-    console.log(yearExpiration)
-
-    const expiredCard = yearNow > yearExpiration || yearNow === yearExpiration && monthNow > monthExpiration
-
-    if (expiredCard) {
-        throw { code: "Bad request", message: "cartão expirado" }
-    }
-}
-
-async function verifyCardRegistration(cardId: number) {
-    const card = await cardRepository.findById(cardId);
-    if (!card) {
-        throw { code: "Not found", message: "cartão não cadastrado" }
-    }
-}
-
-async function verifyBlockAndUnblock(cardId: number, password: string) {
-    const card = await cardRepository.findById(cardId);
-
-    //verifica se cartão está cadastrado
-    verifyCardRegistration(cardId);
-
-    //verifica se cartão não está ativado
-    if (!card.password) {
-        throw { code: "Bad request", message: "cartão não está ativado ainda" }
-    }
-
-    //verifica senha
-    const correctPassword = bcrypt.compareSync(password, card.password);
-    if(!correctPassword) {
-        throw { code: "Unauthorized", message: "senha incorreta" }
-    }
-
-    //verifica se cartão já está expirado
-    verifyExpiredCard(card.expirationDate);
-}
 
 export async function createCard(employeeId: number, type: TransactionTypes) {
     //verifica se empregado está cadastrado
@@ -97,7 +53,7 @@ export async function createCard(employeeId: number, type: TransactionTypes) {
 
     //gera CVC
     const securityCode: string = String(faker.random.numeric(3));
-    const secretKey = process.env.SECRET_KEY || "secret"
+    const secretKey = process.env.SECRET_KEY || "secret";
     const cryptr = new Cryptr(secretKey);
     const encryptedSecurityCode = cryptr.encrypt(securityCode);
 
@@ -113,19 +69,19 @@ export async function createCard(employeeId: number, type: TransactionTypes) {
         originalCardId: undefined,
         isBlocked: false,
         type,
-    }
+    };
 
-    await cardRepository.insert(cardData)
+    await cardRepository.insert(cardData);
 }
 
 export async function activeCard(cardId: number, CVC: string, password: string) {
     const card = await cardRepository.findById(cardId);
-    
+
     //verifica se cartão está cadastrado
-    verifyCardRegistration(cardId);
+    await verifications.verifyCardRegistration(cardId);
 
     //verifica se cartão já está expirado
-    verifyExpiredCard(card.expirationDate);
+    verifications.verifyExpiredCard(card.expirationDate);
 
     //verifica se cartão já está ativado
     if (card.password) {
@@ -155,9 +111,16 @@ export async function activeCard(cardId: number, CVC: string, password: string) 
 
 export async function blockCard(cardId: number, password: string) {
     const card = await cardRepository.findById(cardId);
-    
-    await verifyBlockAndUnblock(cardId, password);
-    
+
+    //verifica se cartão está cadastrado
+    await verifications.verifyCardRegistration(cardId);
+
+    //verifica senha
+    await verifications.verifyPassword(cardId, password);
+
+    //verifica se cartão já está expirado
+    verifications.verifyExpiredCard(card.expirationDate);
+
     //verifica se cartão já está bloqueado
     if (card.isBlocked) {
         throw { code: "Conflict", message: "cartão já bloqueado" }
@@ -173,9 +136,16 @@ export async function blockCard(cardId: number, password: string) {
 
 export async function unblockCard(cardId: number, password: string) {
     const card = await cardRepository.findById(cardId);
-    
-    await verifyBlockAndUnblock(cardId, password);
-    
+
+    //verifica se cartão está cadastrado
+    await verifications.verifyCardRegistration(cardId);
+
+    //verifica senha
+    await verifications.verifyPassword(cardId, password);
+
+    //verifica se cartão já está expirado
+    verifications.verifyExpiredCard(card.expirationDate);
+
     //verifica se cartão já está desbloqueado
     if (!card.isBlocked) {
         throw { code: "Conflict", message: "cartão já desbloqueado" }
@@ -194,7 +164,7 @@ export async function getBalanceById(cardId: number) {
     const card = await cardRepository.findById(cardId);
 
     //verifica se cartão está cadastrado
-    verifyCardRegistration(cardId);
+    await verifications.verifyCardRegistration(cardId);
 
     //calcula saldo
     const { totalRecharges } = await rechargeRepository.getTotalRecharges(cardId);
