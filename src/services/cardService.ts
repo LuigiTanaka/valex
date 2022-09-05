@@ -73,6 +73,8 @@ export async function createCard(employeeId: number, type: TransactionTypes) {
     };
 
     await cardRepository.insert(cardData);
+
+    return { CVC: securityCode }
 }
 
 export async function activeCard(cardId: number, CVC: string, password: string) {
@@ -166,7 +168,6 @@ export async function getBalanceById(cardId: number) {
 
     //calcula saldo
     const balance = await calculateBalance(cardId);
-    console.log(balance);
 
     //pega transações
     const transactions = await paymentRepository.findByCardId(cardId);
