@@ -33,6 +33,7 @@ Valex simulates an API that manages a benefit card, generally made available by 
 -   Create cards
 -   Activate / Block / Unlock a card
 -   Recharge a card
+-   Make card payments
 
 </br>
 
